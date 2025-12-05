@@ -6,9 +6,9 @@
 #include <string.h>
 
 // Func Declarations for builtin shell cmd
-int lsh_cd(char **args);
-int lsh_help(char **args);
-int lsh_exit(char **args);
+int csh_cd(char **args);
+int csh_help(char **args);
+int csh_exit(char **args);
 
 // Builtin cmd and their funcs
 char *builtin_str[] = {
@@ -17,13 +17,13 @@ char *builtin_str[] = {
     "exit"    
 };
 
-int (*builtin_str[]) (char **) = {
-    &lsh_cd,
-    &lsh_help,
-    &lsh_exit
-}
+int (*builtin_func[]) (char **) = {
+    &csh_cd,
+    &csh_help,
+    &csh_exit
+};
 
-int lsh_num_builtins() {
+int csh_num_builtins() {
     return sizeof(builtin_str) / sizeof(char *);
 }
 
@@ -34,7 +34,7 @@ int lsh_num_builtins() {
     args: array of arguments; args[0] = "cd", args[1] = directory
     return: Always 1, to continue executing
 */
-int lsh_cd(char **args) {
+int csh_cd(char **args) {
     if (args[1] == NULL) {
         fprintf(stderr, "lsh: cd: missing argument\n");
     } else {
@@ -50,17 +50,17 @@ int lsh_cd(char **args) {
     args: array of arguments
     return: Always 1, to continue executing
 */
-int lsh_help(char **args) {
+int csh_help(char **args) {
     int i;
     printf("Ishan Leung's C Shell\n");
     printf("Type program names and arguments, and press the enter key.\n");
     printf("The following are built-in commands:\n");
 
-    for (i = 0; i < lsh_num_builtins(); i++) {
+    for (i = 0; i < csh_num_builtins(); i++) {
         printf("  %s\n", builtin_str[i]);
     }
 
-    printf("Use the man command for info on toher programs. \n");
+    printf("Use the man command for info on other programs. \n");
     return 1;
 }
 
@@ -70,7 +70,7 @@ int lsh_help(char **args) {
     return: Always 0, to end the execution
 */
 
-int lsh_exit(char **args) {
+int csh_exit(char **args) {
     return 0;
 }
 
@@ -80,7 +80,7 @@ int lsh_exit(char **args) {
     Return: 1, always
 */
 
-int lsh_launch(char **args) {
+int csh_launch(char **args) {
     pid_t pid;
     int status;
 
@@ -108,7 +108,7 @@ int lsh_launch(char **args) {
     args: Null terminated list of arguments
     return: 1 if shell should continue executing, 0 if it should terminate
 */
-int lsh_execute(char **args) {
+int csh_execute(char **args) {
     int i;
 
     if (args[0] == NULL) {
@@ -116,21 +116,21 @@ int lsh_execute(char **args) {
         return 1;
     }
 
-    for (i = 0; i < lsh_num_builtins(); i++) {
+    for (i = 0; i < csh_num_builtins(); i++) {
         if (strcmp(args[0], builtin_str[i]) == 0) {
             return (*builtin_func[i])(args);
         }
     }
 
-    return lsh_launch(args);
+    return csh_launch(args);
 }
 
 /*
     Read a line of input from stdin
     return: The line read
 */
-char *lsh_read_line(void) {
-    #ifdef LSH_USE_STD_GETLINE
+char *csh_read_line(void) {
+    #ifdef CSH_USE_STD_GETLINE
         char *line = NULL;
         ssize_t bufsize = 0; // use getline to alloc buffer
         if (getline(&line, &bufsize, stdin) == -1) {
@@ -144,8 +144,8 @@ char *lsh_read_line(void) {
 
         return line;
     #else
-    #define LSH_RL_BUFSIZE 1024
-        int bufsize = LSH_RL_BUFSIZE;
+    #define CSH_RL_BUFSIZE 1024
+        int bufsize = CSH_RL_BUFSIZE;
         int position = 0;
         char *buffer = malloc(sizeof(char) * bufsize);
         int c;
@@ -171,7 +171,7 @@ char *lsh_read_line(void) {
 
             // If buffer is full, reallocate
             if (position >= bufsize) {
-                bufsize += LSH_RL_BUFSIZE;
+                bufsize += CSH_RL_BUFSIZE;
                 buffer = realloc(buffer, bufsize);
                 if (!buffer) {
                     fprintf(stderr, "lsh: allocation error\n");
@@ -182,16 +182,16 @@ char *lsh_read_line(void) {
     #endif
 }
 
-#define LSH_TOK_BUFSIZE 64
-#define LSH_TOK_DELIM " \t\r\n\a"
+#define CSH_TOK_BUFSIZE 64
+#define CSH_TOK_DELIM " \t\r\n\a"
 
 /*
     Split a line into tokens (kinda goofy, but it works)
     arg: The line to split
     return: Null terminated array of tokens
 */
-char **lsh_split_line(char *line) {
-    int bufsize = LSH_TOK_BUFSIZE, position = 0;
+char **csh_split_line(char *line) {
+    int bufsize = CSH_TOK_BUFSIZE, position = 0;
     char **tokens = malloc(bufsize * sizeof(char*));
     char *token, **tokens_backup;
 
@@ -200,20 +200,20 @@ char **lsh_split_line(char *line) {
         exit(EXIT_FAILURE);
     }
 
-    token = strtok(line, LSH_TOK_DELIM);
+    token = strtok(line, CSH_TOK_DELIM);
     while (token != NULL) {
         tokens[position] = token;
         position++;
 
         if (position >= bufsize) {
-            bufsize += LSH_TOK_BUFSIZE;
+            bufsize += CSH_TOK_BUFSIZE;
             tokens = realloc(tokens, bufsize * sizeof(char*));
             if (!tokens) {
                 fprintf(stderr, "lsh: allocation error\n");
                 exit(EXIT_FAILURE);
             }
         }
-        token = strtok(NULL, LSH_TOK_DELIM);
+        token = strtok(NULL, CSH_TOK_DELIM);
     }
     tokens[position] = NULL;
     return tokens;
@@ -222,16 +222,16 @@ char **lsh_split_line(char *line) {
 /*
     Loop getting inp and execute it
 */
-void lsh_loop(void) {
+void csh_loop(void) {
     char *line;
     char **args;
     int status;
 
     do {
         printf("> ");
-        line = lsh_read_line();
-        args = lsh_split_line(line);
-        status = lsh_execute(args);
+        line = csh_read_line();
+        args = csh_split_line(line);
+        status = csh_execute(args);
 
         free(line);
         free(args);
@@ -246,7 +246,7 @@ void lsh_loop(void) {
 int main(int argc, char **argv) {
     // Load any config files
     // Run command loop
-    lsh_loop();
+    csh_loop();
 
     // Perform cleanup and shutdown
     return EXIT_SUCCESS;
